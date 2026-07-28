@@ -2,7 +2,7 @@
 """
 feature_extraction.py
 ======================
-Reads raw OHLCV data from  ->  data/input/
+Reads raw OHLCV data from  ->  data/save/
 Writes engineered features to  ->  feature_extraction/output/
 
 Indicator logic ported from the shared reference script
@@ -10,7 +10,7 @@ Indicator logic ported from the shared reference script
 
 Usage:
     python feature_extraction.py
-    python feature_extraction.py --input data/input/NIFTYBANK_5m.csv --output feature_extraction/output/features.csv
+    python feature_extraction.py --input data/save/NIFTYBANK_5m.csv --output feature_extraction/output/features.csv
 """
 
 import argparse
@@ -26,7 +26,7 @@ import pandas as pd
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(THIS_DIR)
 
-DEFAULT_INPUT_DIR = os.path.join(PROJECT_ROOT, "data", "input")
+DEFAULT_INPUT_DIR = os.path.join(PROJECT_ROOT, "data", "save")
 DEFAULT_OUTPUT_DIR = os.path.join(THIS_DIR, "output")
 DEFAULT_OUTPUT_FILE = os.path.join(DEFAULT_OUTPUT_DIR, "features.csv")
 
@@ -238,7 +238,7 @@ def run_feature_extraction(input_path: str = DEFAULT_INPUT_DIR,
 def parse_args():
     parser = argparse.ArgumentParser(description="Feature extraction for anomaly detection")
     parser.add_argument("--input", default=DEFAULT_INPUT_DIR,
-                         help="Path to input CSV file or a directory (data/input by default)")
+                         help="Path to input CSV file or a directory (data/save by default)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_FILE,
                          help="Path to output features CSV (feature_extraction/output/features.csv by default)")
     return parser.parse_args()
