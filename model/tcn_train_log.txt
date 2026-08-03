@@ -1,0 +1,93 @@
+Using Device : cuda
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:424: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  self.check_worker_number_rationality()
+Training Samples : 14692
+
+Training Started...
+
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:432: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  self.check_worker_number_rationality()
+Epoch [001/50] Loss = 0.812082
+ Best model saved.
+Epoch [002/50] Loss = 0.681815
+ Best model saved.
+Epoch [003/50] Loss = 0.632639
+ Best model saved.
+Epoch [004/50] Loss = 0.593342
+ Best model saved.
+Epoch [005/50] Loss = 0.578766
+ Best model saved.
+Epoch [006/50] Loss = 0.569341
+ Best model saved.
+Epoch [007/50] Loss = 0.564383
+ Best model saved.
+Epoch [008/50] Loss = 0.558986
+ Best model saved.
+Epoch [009/50] Loss = 0.555121
+ Best model saved.
+Epoch [010/50] Loss = 0.551432
+ Best model saved.
+Epoch [011/50] Loss = 0.550032
+ Best model saved.
+Epoch [012/50] Loss = 0.548940
+ Best model saved.
+Epoch [013/50] Loss = 0.544545
+ Best model saved.
+Epoch [014/50] Loss = 0.546259
+Epoch [015/50] Loss = 0.542504
+ Best model saved.
+Epoch [016/50] Loss = 0.540352
+ Best model saved.
+Epoch [017/50] Loss = 0.538182
+ Best model saved.
+Epoch [018/50] Loss = 0.538073
+ Best model saved.
+Epoch [019/50] Loss = 0.538413
+Epoch [020/50] Loss = 0.536782
+ Best model saved.
+Epoch [021/50] Loss = 0.535079
+ Best model saved.
+Epoch [022/50] Loss = 0.534840
+ Best model saved.
+Epoch [023/50] Loss = 0.534259
+ Best model saved.
+Epoch [024/50] Loss = 0.534414
+Epoch [025/50] Loss = 0.535048
+Epoch [026/50] Loss = 0.534385
+Epoch [027/50] Loss = 0.531986
+ Best model saved.
+Epoch [028/50] Loss = 0.530640
+ Best model saved.
+Epoch [029/50] Loss = 0.531738
+Epoch [030/50] Loss = 0.528495
+ Best model saved.
+Epoch [031/50] Loss = 0.529551
+Epoch [032/50] Loss = 0.527851
+ Best model saved.
+Epoch [033/50] Loss = 0.528176
+Epoch [034/50] Loss = 0.529325
+Epoch [035/50] Loss = 0.528134
+Epoch [036/50] Loss = 0.527427
+ Best model saved.
+Epoch [037/50] Loss = 0.526659
+ Best model saved.
+Epoch [038/50] Loss = 0.527839
+Epoch [039/50] Loss = 0.526687
+Epoch [040/50] Loss = 0.526951
+Epoch [041/50] Loss = 0.526211
+ Best model saved.
+Epoch [042/50] Loss = 0.525045
+ Best model saved.
+Epoch [043/50] Loss = 0.527324
+Epoch [044/50] Loss = 0.525892
+Epoch [045/50] Loss = 0.525407
+Epoch [046/50] Loss = 0.525600
+Epoch [047/50] Loss = 0.526133
+Epoch [048/50] Loss = 0.524816
+ Best model saved.
+Epoch [049/50] Loss = 0.525537
+Epoch [050/50] Loss = 0.525087
+
+Training Completed.
+Best Loss : 0.524816
+Threshold Saved : 1.699823

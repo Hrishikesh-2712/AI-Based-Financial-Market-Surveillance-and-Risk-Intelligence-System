@@ -1,0 +1,6 @@
+feedparser>=6.0
+sentence-transformers>=2.7
+transformers>=4.40
+torch>=2.0
+streamlit>=1.35
+pandas>=2.0

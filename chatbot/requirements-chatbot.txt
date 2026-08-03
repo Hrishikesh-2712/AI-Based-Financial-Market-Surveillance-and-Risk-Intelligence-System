@@ -1,0 +1,9 @@
+# Add these to the project's root requirements.txt (pandas, streamlit,
+# python-dotenv, sentence-transformers are already there).
+langchain
+langchain-community
+langchain-huggingface
+langchain-google-genai
+langchain-ollama
+langchain-classic   # only needed on langchain>=1.0, where RetrievalQA moved here
+faiss-cpu
