@@ -1,2 +1,7 @@
+.env
+data/access_token.txt
+*.log
 *.csv
-*.pyc
+nlp_news_engine/snapshots/*.json
+__pycache__/
+env/

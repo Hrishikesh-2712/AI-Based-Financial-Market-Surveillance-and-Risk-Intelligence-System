@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Based Market Surveillance & Risk Intelligence System — Bank Nifty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#040506; --void-2:#0a0c10;
+    --ink:#e9edf3; --ink-dim:#7d8494; --ink-faint:#454b58;
+    --cyan:#22e5ff; --blue:#4f8cff; --violet:#9b7bfa; --green:#2ee6a6; --red:#ff5c6c;
+    --line:rgba(233,237,243,0.08); --line-strong:rgba(233,237,243,0.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--void); color:var(--ink); font-family:'Space Grotesk',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden;}
+  ::selection{background:var(--cyan); color:#040506;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit;}
+  .eyebrow{font-family:'JetBrains Mono'; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim); display:flex; align-items:center; gap:10px; margin-bottom:20px;}
+  .eyebrow::before{content:''; width:16px; height:1px; background:var(--cyan);}
+
+  .grain{position:fixed; inset:0; z-index:100; pointer-events:none; opacity:0.04; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  #bg-canvas{position:fixed; inset:0; z-index:0; width:100%; height:100%;}
+  .grid-field{position:fixed; inset:0; z-index:1; pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:56px 56px; mask-image:radial-gradient(ellipse 80% 60% at 50% 25%, #000 25%, transparent 72%); opacity:0.5;}
+  .vignette{position:fixed; inset:0; z-index:2; pointer-events:none; background:radial-gradient(ellipse 70% 60% at 50% 15%, transparent 25%, var(--void) 90%);}
+
+  /* ticker */
+  .ticker{position:fixed; top:0; left:0; right:0; z-index:60; height:30px; overflow:hidden; border-bottom:1px solid var(--line);
+    background:rgba(4,5,6,0.75); backdrop-filter:blur(10px); display:flex; align-items:center;}
+  .ticker-track{display:flex; gap:38px; white-space:nowrap; animation:tickerScroll 32s linear infinite; padding-left:100%;}
+  @keyframes tickerScroll{ to{ transform:translateX(-100%);} }
+  .ticker-item{font-family:'JetBrains Mono'; font-size:11px; color:var(--ink-dim); display:flex; gap:7px; align-items:center;}
+  .ticker-item .sym{color:var(--ink);}
+  .ticker-item.up{color:var(--green);} .ticker-item.down{color:var(--red);}
+
+  nav{position:fixed; top:30px; left:0; right:0; z-index:50; display:flex; align-items:center; justify-content:space-between;
+    padding:20px 44px; backdrop-filter:blur(14px); background:linear-gradient(rgba(4,5,6,0.5), rgba(4,5,6,0));}
+  .logo{display:flex; align-items:center; gap:10px; font-size:15.5px; font-weight:600; letter-spacing:0.02em;}
+  .logo .dot{width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px 2px var(--cyan); animation:blink 2.2s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .nav-links{display:flex; gap:30px; font-size:13px; color:var(--ink-dim); font-weight:500;}
+  .nav-links a{text-decoration:none; transition:color .25s;}
+  .nav-links a:hover{color:var(--ink);}
+  @media (max-width:1000px){.nav-links{display:none;}}
+
+  .btn{font-size:12.5px; letter-spacing:0.02em; font-weight:500; padding:11px 20px; border-radius:6px; border:1px solid var(--line-strong);
+    color:var(--ink); text-decoration:none; background:rgba(255,255,255,0.03); transition:background .3s, transform .3s, border-color .3s; display:inline-block;}
+  .btn:hover{background:rgba(255,255,255,0.08); border-color:rgba(233,237,243,0.3);}
+  .btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#040506; border:none; font-weight:600;}
+  .btn-primary:hover{filter:brightness(1.1); box-shadow:0 8px 30px -8px rgba(34,229,255,0.5);}
+  .magnetic{will-change:transform;}
+
+  /* hero */
+  .hero{position:relative; z-index:3; min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; padding:150px 24px 0;}
+  .hero-content{max-width:920px; position:relative; z-index:4;}
+  .hero h1{font-size:clamp(30px,4.6vw,58px); font-weight:600; line-height:1.1; letter-spacing:-0.02em;}
+  .hero h1 .accent{background:linear-gradient(135deg,var(--cyan),var(--blue)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .hero p.sub{margin:24px auto 0; max-width:600px; font-size:15.5px; line-height:1.75; color:var(--ink-dim);}
+  .hero .tag{margin-top:18px; font-family:'JetBrains Mono'; font-size:11.5px; color:var(--ink-faint); letter-spacing:0.08em;}
+  .cta-row{margin-top:38px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+
+  .orb-stage{position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center;}
+  #orb-canvas{width:min(760px,92vw); height:min(760px,92vw);}
+
+  .candle-strip{position:absolute; bottom:14%; left:0; right:0; height:110px; z-index:1; opacity:0.55; pointer-events:none;}
+
+  .scroll-hint{position:absolute; bottom:26px; left:50%; transform:translateX(-50%); z-index:4; font-family:'JetBrains Mono';
+    font-size:10px; color:var(--ink-faint); letter-spacing:0.15em; text-transform:uppercase; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .scroll-hint .line{width:1px; height:22px; background:linear-gradient(var(--ink-dim), transparent); animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:0.25;}50%{opacity:1;}}
+
+  section{position:relative; z-index:3; padding:130px 44px; max-width:1260px; margin:0 auto;}
+  .section-head{max-width:640px; margin-bottom:64px;}
+  .section-head h2{font-size:clamp(26px,3vw,40px); font-weight:600; line-height:1.18; letter-spacing:-0.01em;}
+  .section-head p{margin-top:16px; color:var(--ink-dim); font-size:15px; line-height:1.75; max-width:540px;}
+
+  /* introduction / problem two-col */
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:start;}
+  .two-col p{color:var(--ink-dim); font-size:15px; line-height:1.8;}
+  .two-col p + p{margin-top:16px;}
+  @media (max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+  .obj-list{display:flex; flex-direction:column; gap:0; border-top:1px solid var(--line);}
+  .obj-item{display:flex; gap:20px; padding:22px 0; border-bottom:1px solid var(--line); align-items:baseline;}
+  .obj-item .idx{font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); min-width:26px;}
+  .obj-item p{color:var(--ink-dim); font-size:14.5px; line-height:1.6;}
+  .obj-item strong{color:var(--ink); font-weight:500;}
+
+  /* pipeline */
+  .pipeline{display:flex; flex-direction:column; gap:0; position:relative; max-width:640px; margin:0 auto;}
+  .pipe-stage{display:flex; gap:22px; align-items:flex-start; position:relative; padding-bottom:44px;}
+  .pipe-stage:last-child{padding-bottom:0;}
+  .pipe-stage::before{content:''; position:absolute; left:23px; top:48px; bottom:0; width:1px; background:repeating-linear-gradient(var(--line-strong) 0 6px, transparent 6px 12px);}
+  .pipe-stage:last-child::before{display:none;}
+  .pipe-dot{width:48px; height:48px; min-width:48px; border-radius:50%; border:1px solid var(--line-strong); background:var(--void-2);
+    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono'; font-size:14px; color:var(--cyan); position:relative; z-index:2;}
+  .pipe-stage.active .pipe-dot{border-color:var(--cyan); box-shadow:0 0 22px -4px rgba(34,229,255,0.5); background:rgba(34,229,255,0.06);}
+  .pipe-text{padding-top:8px;}
+  .pipe-text h3{font-size:16.5px; font-weight:600; margin-bottom:5px;}
+  .pipe-text p{color:var(--ink-dim); font-size:13.5px;}
+
+  /* tech stack */
+  .tech-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .tech-card{border:1px solid var(--line); border-radius:12px; padding:22px 20px; background:var(--void-2); position:relative; overflow:hidden;
+    transition:transform .3s, border-color .3s;}
+  .tech-card::after{content:''; position:absolute; inset:0; opacity:0; transition:opacity .4s;
+    background:radial-gradient(200px circle at var(--mx,50%) var(--my,50%), rgba(34,229,255,0.12), transparent 60%);}
+  .tech-card:hover::after{opacity:1;}
+  .tech-card:hover{border-color:rgba(233,237,243,0.25); transform:translateY(-3px);}
+  .tech-card .dotpip{width:6px; height:6px; border-radius:50%; background:var(--violet); margin-bottom:14px;}
+  .tech-card span{font-family:'JetBrains Mono'; font-size:13px; color:var(--ink);}
+  @media (max-width:900px){.tech-grid{grid-template-columns:repeat(2,1fr);}}
+
+  /* architecture */
+  .arch-diagram{border:1px solid var(--line); border-radius:16px; background:var(--void-2); padding:44px; display:flex; flex-direction:column; gap:14px;}
+  .arch-row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center;}
+  .arch-node{border:1px solid var(--line-strong); border-radius:10px; padding:14px 18px; font-size:12.5px; font-family:'JetBrains Mono';
+    color:var(--ink); background:rgba(255,255,255,0.02); text-align:center;}
+  .arch-node.core{border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 24px -6px rgba(34,229,255,0.4);}
+  .arch-arrow{align-self:center; color:var(--ink-faint); font-family:'JetBrains Mono'; font-size:16px;}
+
+  /* features */
+  .feat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .feat-card{border:1px solid var(--line); border-radius:14px; padding:26px; background:var(--void-2); position:relative; overflow:hidden;
+    transition:transform .35s, border-color .35s;}
+  .feat-card::after{content:''; position:absolute; inset:0; opacity:0; transition:opacity .4s;
+    background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%), rgba(34,229,255,0.1), transparent 60%);}
+  .feat-card:hover::after{opacity:1;}
+  .feat-card:hover{border-color:rgba(233,237,243,0.22); transform:translateY(-4px);}
+  .feat-icon{width:32px; height:32px; margin-bottom:18px; color:var(--cyan);}
+  .feat-card h3{font-size:15.5px; font-weight:600; margin-bottom:8px;}
+  .feat-card p{color:var(--ink-dim); font-size:13px; line-height:1.6;}
+  @media (max-width:900px){.feat-grid{grid-template-columns:1fr;}}
+
+  /* dashboard mock */
+  .dash-stage{perspective:1600px; display:flex; justify-content:center;}
+  .dash-mock{width:100%; max-width:1020px; border-radius:16px; border:1px solid var(--line-strong);
+    background:linear-gradient(160deg, rgba(16,18,24,0.92), rgba(4,5,6,0.96));
+    box-shadow:0 60px 100px -30px rgba(0,0,0,0.7); padding:20px; transform-style:preserve-3d;}
+  .dash-topbar{display:flex; justify-content:space-between; align-items:center; padding-bottom:14px; border-bottom:1px solid var(--line); margin-bottom:16px;}
+  .dash-dots{display:flex; gap:6px;} .dash-dots span{width:8px; height:8px; border-radius:50%; background:var(--ink-faint);}
+  .dash-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:12px;}
+  .dash-panel{border:1px solid var(--line); border-radius:10px; padding:16px; background:rgba(255,255,255,0.015);}
+  .dash-panel h4{font-size:11px; color:var(--ink-dim); font-family:'JetBrains Mono'; margin-bottom:12px; letter-spacing:0.05em; text-transform:uppercase;}
+  #candleCanvas{width:100%; height:150px; display:block;}
+  .indicator-row{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .indicator-chip{font-family:'JetBrains Mono'; font-size:10px; color:var(--ink-dim); border:1px solid var(--line); border-radius:5px; padding:4px 8px;}
+  .gauge-wrap{display:flex; align-items:center; gap:14px;}
+  .mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;}
+  .heatcell{aspect-ratio:1; border-radius:4px;}
+  .heat-grid{display:grid; grid-template-columns:repeat(8,1fr); gap:4px;}
+  .info-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:12px;}
+  .info-row:last-child{border-bottom:none;}
+  .badge{font-family:'JetBrains Mono'; font-size:10px; padding:3px 8px; border-radius:5px;}
+  .badge.high{background:rgba(255,92,108,0.14); color:var(--red);}
+  .badge.mid{background:rgba(34,229,255,0.12); color:var(--cyan);}
+
+  /* results */
+  .results-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .result-card{border:1px solid var(--line); border-radius:14px; padding:26px; background:var(--void-2);}
+  .result-card h4{font-size:15px; font-weight:600; margin-bottom:10px;}
+  .result-card p{font-size:13px; color:var(--ink-dim); line-height:1.65;}
+  .result-note{margin-top:26px; border:1px dashed var(--line-strong); border-radius:10px; padding:16px 18px; font-family:'JetBrains Mono';
+    font-size:12px; color:var(--ink-faint); line-height:1.7;}
+  @media (max-width:900px){.results-grid{grid-template-columns:1fr;}}
+
+  /* future scope */
+  .scope-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:2px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .scope-cell{background:var(--void-2); padding:28px; display:flex; gap:16px;}
+  .scope-cell .num{font-family:'JetBrains Mono'; font-size:12px; color:var(--ink-faint); min-width:24px;}
+  .scope-cell h4{font-size:15px; font-weight:600; margin-bottom:6px;}
+  .scope-cell p{font-size:13px; color:var(--ink-dim); line-height:1.6;}
+  @media (max-width:800px){.scope-grid{grid-template-columns:1fr;}}
+
+  /* team */
+  .team-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  .team-card{border:1px solid var(--line); border-radius:14px; padding:28px; background:var(--void-2); text-align:left; position:relative; overflow:hidden;}
+  .team-card::before{content:''; position:absolute; inset:0; border-radius:14px; padding:1px;
+    background:linear-gradient(135deg, rgba(34,229,255,0.25), rgba(155,123,250,0.15), transparent);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; opacity:0; transition:opacity .4s;}
+  .team-card:hover::before{opacity:1;}
+  .team-avatar{width:56px; height:56px; border-radius:50%; margin-bottom:18px;
+    background:radial-gradient(circle at 30% 20%, rgba(34,229,255,0.3), transparent 55%), radial-gradient(circle at 70% 80%, rgba(155,123,250,0.3), transparent 55%), #0e1015;
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono'; font-size:16px; color:var(--cyan);}
+  .team-card h4{font-size:16px; font-weight:600;}
+  .team-card .role{font-family:'JetBrains Mono'; font-size:11px; color:var(--ink-faint); margin-top:5px; letter-spacing:0.04em; text-transform:uppercase;}
+  @media (max-width:900px){.team-grid{grid-template-columns:1fr;}}
+
+  /* contact */
+  .contact-box{border:1px solid var(--line); border-radius:16px; padding:50px; background:var(--void-2); text-align:center;}
+  .contact-box h2{font-size:clamp(24px,2.8vw,34px); font-weight:600; margin-bottom:14px;}
+  .contact-box p{color:var(--ink-dim); font-size:14.5px; max-width:460px; margin:0 auto 30px;}
+
+  footer{position:relative; z-index:3; border-top:1px solid var(--line); padding:36px 44px; text-align:center;
+    font-family:'JetBrains Mono'; font-size:11px; color:var(--ink-faint);}
+
+  .reveal{opacity:0; transform:translateY(26px);}
+  @media (prefers-reduced-motion: reduce){.reveal{opacity:1 !important; transform:none !important;}}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<canvas id="bg-canvas"></canvas>
+<div class="grid-field"></div>
+<div class="vignette"></div>
+
+<div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+
+<nav>
+  <div class="logo"><span class="dot"></span>AI MARKET SURVEILLANCE</div>
+  <div class="nav-links">
+    <a href="#methodology">Methodology</a>
+    <a href="#stack">Stack</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#team">Team</a>
+  </div>
+  <div><a class="btn btn-primary magnetic" href="?view=dashboard" target="_blank">Launch Dashboard</a></div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<section class="hero" style="padding-left:0;padding-right:0;max-width:none;">
+  <div class="orb-stage"><canvas id="orb-canvas"></canvas></div>
+  <canvas class="candle-strip" id="candleStrip"></canvas>
+
+  <div class="hero-content">
+    <div class="eyebrow" style="justify-content:center;">ACADEMIC AI / ML PROJECT</div>
+    <h1>AI-Based Market Surveillance<br>&amp; <span class="accent">Risk Intelligence System</span></h1>
+    <p class="sub">An anomaly-detection and risk-scoring system for the Bank Nifty index — combining Isolation Forest, Temporal Convolutional Networks, and news-aware analysis to surface risk in real time.</p>
+    <div class="tag">BUILT BY ATHARV KALAL · PRIYANKA PATEL · HRISHIKESH CHANDRA</div>
+    <div class="cta-row">
+      <a class="btn btn-primary magnetic" href="?view=dashboard" target="_blank">Launch Dashboard</a>
+      <a class="btn magnetic" href="#methodology">View Methodology</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint"><span>Scroll</span><div class="line"></div></div>
+</section>
+
+<!-- ================= INTRODUCTION / PROBLEM ================= -->
+<section id="intro">
+  <div class="section-head reveal">
+    <div class="eyebrow">INTRODUCTION</div>
+    <h2>What this system does</h2>
+  </div>
+  <div class="two-col">
+    <div class="reveal">
+      <p>The system monitors Bank Nifty market data on an ongoing basis and applies machine learning to detect statistically and temporally unusual behaviour in price and volume — the kind of activity that manual, rule-based surveillance tends to miss or flag too late.</p>
+      <p>Detected anomalies are combined with a news-analysis layer, scored through a risk engine, and surfaced through a live dashboard and a retrieval-augmented (RAG) chatbot for querying the system in natural language.</p>
+    </div>
+    <div class="reveal">
+      <div class="eyebrow" style="margin-bottom:14px;">PROBLEM STATEMENT</div>
+      <p>Traditional, threshold-based market surveillance struggles to adapt to new patterns of unusual activity, and typically produces alerts without the underlying reasoning an analyst needs to act on them quickly.</p>
+      <p>This project explores whether a learned, explainable approach — combining anomaly detection models with contextual news signals — can surface risk earlier and with more usable context than static rules alone.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OBJECTIVES ================= -->
+<section id="objectives">
+  <div class="section-head reveal">
+    <div class="eyebrow">OBJECTIVES</div>
+    <h2>What the project set out to build</h2>
+  </div>
+  <div class="obj-list reveal">
+    <div class="obj-item"><span class="idx">01</span><p><strong>Detect anomalies</strong> in Bank Nifty price and volume data using Isolation Forest and Temporal Convolutional Networks.</p></div>
+    <div class="obj-item"><span class="idx">02</span><p><strong>Incorporate news context</strong> so that detected anomalies can be related to concurrent market news and events.</p></div>
+    <div class="obj-item"><span class="idx">03</span><p><strong>Produce a composite risk score</strong> through a dedicated risk engine that combines model outputs into a single, interpretable signal.</p></div>
+    <div class="obj-item"><span class="idx">04</span><p><strong>Serve results in real time</strong> through a FastAPI backend to a live dashboard built with Streamlit and Plotly.</p></div>
+    <div class="obj-item"><span class="idx">05</span><p><strong>Enable natural-language querying</strong> of system output through a RAG-based chatbot using LangChain, FAISS, and Gemini.</p></div>
+    <div class="obj-item"><span class="idx">06</span><p><strong>Track experiments</strong> and model iterations systematically using MLflow.</p></div>
+  </div>
+</section>
+
+<!-- ================= METHODOLOGY ================= -->
+<section id="methodology">
+  <div class="section-head reveal">
+    <div class="eyebrow">METHODOLOGY</div>
+    <h2>The processing pipeline</h2>
+    <p>Data flows through nine stages, from raw market data to a queryable risk output.</p>
+  </div>
+  <div class="pipeline" id="pipelineList">
+    <div class="pipe-stage"><div class="pipe-dot">1</div><div class="pipe-text"><h3>Data Collection</h3><p>Bank Nifty market data retrieved via the FYERS API.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">2</div><div class="pipe-text"><h3>Preprocessing</h3><p>Cleaning, normalizing, and structuring raw market data for modeling.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">3</div><div class="pipe-text"><h3>Feature Engineering</h3><p>Deriving the price, volume, and volatility features the models are trained on.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">4</div><div class="pipe-text"><h3>Isolation Forest</h3><p>Unsupervised detection of statistical outliers in the feature set.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">5</div><div class="pipe-text"><h3>TCN</h3><p>A Temporal Convolutional Network models sequential patterns across time.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">6</div><div class="pipe-text"><h3>News Analysis</h3><p>Concurrent financial news is analyzed and linked to detected anomalies.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">7</div><div class="pipe-text"><h3>Risk Engine</h3><p>Model outputs and news signals are combined into a composite risk score.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">8</div><div class="pipe-text"><h3>Dashboard</h3><p>Risk scores and anomalies are served live through a Streamlit + Plotly dashboard.</p></div></div>
+    <div class="pipe-stage"><div class="pipe-dot">9</div><div class="pipe-text"><h3>RAG Chatbot</h3><p>A LangChain + FAISS + Gemini chatbot lets users query the system in natural language.</p></div></div>
+  </div>
+</section>
+
+<!-- ================= TECH STACK ================= -->
+<section id="stack">
+  <div class="section-head reveal">
+    <div class="eyebrow">TECHNOLOGY STACK</div>
+    <h2>What the system is built with</h2>
+  </div>
+  <div class="tech-grid" id="techGrid">
+    <div class="tech-card reveal"><div class="dotpip"></div><span>Python</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>FastAPI</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>PyTorch</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>Isolation Forest</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>TCN</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>Plotly</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>Streamlit</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>MLflow</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>FYERS API</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>Gemini</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>LangChain</span></div>
+    <div class="tech-card reveal"><div class="dotpip"></div><span>FAISS</span></div>
+  </div>
+</section>
+
+<!-- ================= ARCHITECTURE ================= -->
+<section id="architecture">
+  <div class="section-head reveal">
+    <div class="eyebrow">SYSTEM ARCHITECTURE</div>
+    <h2>How the components connect</h2>
+  </div>
+  <div class="arch-diagram reveal">
+    <div class="arch-row"><div class="arch-node">FYERS API — Bank Nifty Data</div></div>
+    <div class="arch-row"><span class="arch-arrow">↓</span></div>
+    <div class="arch-row"><div class="arch-node">Preprocessing &amp; Feature Engineering</div></div>
+    <div class="arch-row"><span class="arch-arrow">↓</span></div>
+    <div class="arch-row">
+      <div class="arch-node core">Isolation Forest</div>
+      <div class="arch-node core">TCN</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↓</span></div>
+    <div class="arch-row">
+      <div class="arch-node">News Analysis (Gemini)</div>
+      <div class="arch-node">Risk Engine</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↓</span></div>
+    <div class="arch-row"><div class="arch-node">FastAPI Backend</div></div>
+    <div class="arch-row"><span class="arch-arrow">↓</span></div>
+    <div class="arch-row">
+      <div class="arch-node">Streamlit + Plotly Dashboard</div>
+      <div class="arch-node">RAG Chatbot (LangChain + FAISS)</div>
+    </div>
+    <div class="arch-row" style="margin-top:6px;"><div class="mono" style="font-size:11px; color:var(--ink-faint);">Experiments tracked throughout with MLflow</div></div>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section id="features">
+  <div class="section-head reveal">
+    <div class="eyebrow">FEATURES</div>
+    <h2>System capabilities</h2>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.3"/></svg><h3>Anomaly Detection</h3><p>Isolation Forest and TCN work together to flag statistical and temporal anomalies in market behaviour.</p></div>
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><path d="M4 20l4-9 4 5 4-11 4 15" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Composite Risk Scoring</h3><p>The risk engine combines model outputs into a single score rather than isolated, disconnected alerts.</p></div>
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><h3>News-Aware Analysis</h3><p>Anomalies are contextualized against concurrent financial news rather than viewed in isolation.</p></div>
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.3"/></svg><h3>Live Dashboard</h3><p>Streamlit and Plotly render risk scores, anomalies, and market data in a continuously updating view.</p></div>
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><path d="M8 10h8M8 14h5M21 12c0 4.97-4.03 9-9 9-1.6 0-3.1-.42-4.4-1.15L3 21l1.15-4.6A8.96 8.96 0 013 12c0-4.97 4.03-9 9-9s9 4.03 9 9z" stroke="currentColor" stroke-width="1.3"/></svg><h3>RAG Chatbot</h3><p>A LangChain + FAISS + Gemini chatbot answers natural-language questions about system output.</p></div>
+    <div class="feat-card reveal"><svg class="feat-icon" viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" stroke="currentColor" stroke-width="1.3"/></svg><h3>FastAPI Backend</h3><p>A typed API layer serves model output to the dashboard and chatbot in real time.</p></div>
+  </div>
+</section>
+
+<!-- ================= DASHBOARD PREVIEW ================= -->
+<section id="dashboard">
+  <div class="section-head reveal">
+    <div class="eyebrow">DASHBOARD PREVIEW</div>
+    <h2>What the live dashboard shows</h2>
+    <p>A recreation of the Streamlit + Plotly dashboard layout — move your cursor over it.</p>
+  </div>
+  <div class="dash-stage">
+    <div class="dash-mock reveal" id="dashMock">
+      <div class="dash-topbar">
+        <div class="dash-dots"><span></span><span></span><span></span></div>
+        <div class="mono" style="font-size:10.5px; color:var(--ink-faint);">BANK NIFTY / RISK DASHBOARD</div>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-panel">
+          <h4>Bank Nifty — Candlestick</h4>
+          <canvas id="candleCanvas"></canvas>
+          <div class="indicator-row">
+            <div class="indicator-chip">RSI</div>
+            <div class="indicator-chip">MACD</div>
+            <div class="indicator-chip">Bollinger Bands</div>
+          </div>
+        </div>
+        <div class="dash-panel">
+          <h4>Composite risk score</h4>
+          <div class="gauge-wrap">
+            <svg width="86" height="86" viewBox="0 0 90 90"><circle cx="45" cy="45" r="38" stroke="var(--line-strong)" stroke-width="7" fill="none"/><circle cx="45" cy="45" r="38" stroke="var(--red)" stroke-width="7" fill="none" stroke-dasharray="238.7" stroke-dashoffset="60" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg>
+            <div><div class="mono" style="font-size:24px; color:var(--red);">RISK</div><div style="font-size:11px; color:var(--ink-dim);">confidence-weighted</div></div>
+          </div>
+          <div class="mini-grid">
+            <div><div class="mono" style="font-size:10px; color:var(--ink-faint); margin-bottom:6px;">VOLUME</div><div style="height:36px; background:linear-gradient(90deg,var(--blue),transparent); border-radius:4px; opacity:0.5;"></div></div>
+            <div><div class="mono" style="font-size:10px; color:var(--ink-faint); margin-bottom:6px;">HEATMAP</div><div class="heat-grid" id="heatGrid"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-panel" style="margin-top:12px;">
+        <h4>Latest anomaly &amp; news</h4>
+        <div class="info-row"><span>Anomaly detected — TCN sequence deviation</span><span class="badge high">high</span></div>
+        <div class="info-row"><span>Linked news item — market-moving headline</span><span class="badge mid">context</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:center; margin-top:28px;">
+    <a class="btn btn-primary magnetic" href="?view=dashboard" target="_blank">Launch Dashboard →</a>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="results">
+  <div class="section-head reveal">
+    <div class="eyebrow">RESULTS</div>
+    <h2>What the system demonstrates</h2>
+    <p>The pipeline was built and evaluated end to end on historical Bank Nifty data — from raw ingestion through anomaly detection to a served risk score.</p>
+  </div>
+  <div class="results-grid">
+    <div class="result-card reveal"><h4>Detection pipeline</h4><p>Isolation Forest and TCN models run over engineered features to produce anomaly flags on historical Bank Nifty sequences.</p></div>
+    <div class="result-card reveal"><h4>Context linking</h4><p>Detected anomalies are paired with concurrent news items, giving each flag a traceable reason rather than a bare score.</p></div>
+    <div class="result-card reveal"><h4>End-to-end serving</h4><p>Risk scores flow from the FastAPI backend into the live dashboard and are queryable through the RAG chatbot.</p></div>
+  </div>
+  <div class="result-note reveal">Add your specific evaluation metrics here (precision / recall / backtest results from the report) — placeholder intentionally left blank rather than filled with invented numbers.</div>
+</section>
+
+<!-- ================= FUTURE SCOPE ================= -->
+<section id="future">
+  <div class="section-head reveal">
+    <div class="eyebrow">FUTURE SCOPE</div>
+    <h2>Where this can go next</h2>
+  </div>
+  <div class="scope-grid">
+    <div class="scope-cell reveal"><span class="num">01</span><div><h4>Additional indices</h4><p>Extend detection beyond Bank Nifty to other indices and individual instruments.</p></div></div>
+    <div class="scope-cell reveal"><span class="num">02</span><div><h4>Broker integration</h4><p>Connect live order execution or alerting through broker APIs beyond FYERS.</p></div></div>
+    <div class="scope-cell reveal"><span class="num">03</span><div><h4>Model refinement</h4><p>Further tune the Isolation Forest and TCN models with expanded historical training data.</p></div></div>
+    <div class="scope-cell reveal"><span class="num">04</span><div><h4>Mobile alerts</h4><p>Push risk alerts to mobile or messaging channels for faster analyst response.</p></div></div>
+  </div>
+</section>
+
+<!-- ================= TEAM ================= -->
+<section id="team">
+  <div class="section-head reveal">
+    <div class="eyebrow">TEAM</div>
+    <h2>Built by</h2>
+  </div>
+  <div class="team-grid">
+    <div class="team-card reveal"><div class="team-avatar">AK</div><h4>Atharv Kalal</h4><div class="role">Project Contributor</div></div>
+    <div class="team-card reveal"><div class="team-avatar">PP</div><h4>Priyanka Patel</h4><div class="role">Project Contributor</div></div>
+    <div class="team-card reveal"><div class="team-avatar">HC</div><h4>Hrishikesh Chandra</h4><div class="role">Project Contributor</div></div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact">
+  <div class="contact-box reveal">
+    <h2>Interested in the project?</h2>
+    <p>Reach out to the team for the full report, source code, or a walkthrough of the system.</p>
+    <a class="btn btn-primary magnetic" href="#">Get in Touch</a>
+  </div>
+</section>
+
+<footer>AI-Based Market Surveillance &amp; Risk Intelligence System for Bank Nifty — Academic Project, 2026</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ============ TICKER TAPE (decorative — not live data) ============ */
+(function(){
+  const symbols = ['BANKNIFTY','NIFTY 50','HDFC BANK','ICICI BANK','SBIN','AXIS BANK','KOTAK BANK','INDUSIND BANK'];
+  const track = document.getElementById('tickerTrack');
+  let html = '';
+  for(let r=0;r<2;r++){
+    symbols.forEach(s=>{
+      const dir = Math.random()>0.5 ? 'up':'down';
+      const pct = (Math.random()*1.8).toFixed(2);
+      html += `<div class="ticker-item ${dir}"><span class="sym mono">${s}</span><span class="mono">${dir==='up'?'▲':'▼'} ${pct}%</span></div>`;
+    });
+  }
+  track.innerHTML = html;
+})();
+
+/* ============ BACKGROUND FIELD ============ */
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w,h,particles=[];
+  function resize(){ w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const COUNT = Math.min(65, Math.floor(window.innerWidth/24));
+  for(let i=0;i<COUNT;i++){ particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.15,r:Math.random()*1.3+0.4}); }
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='rgba(34,229,255,0.5)';
+    for(const p of particles){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=w; if(p.x>w)p.x=0; if(p.y<0)p.y=h; if(p.y>h)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.strokeStyle='rgba(155,123,250,0.09)'; ctx.lineWidth=1;
+    for(let i=0;i<particles.length;i++)for(let j=i+1;j<particles.length;j++){
+      const a=particles[i],b=particles[j]; const d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<125){ ctx.globalAlpha=1-d/125; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    }
+    ctx.globalAlpha=1;
+    requestAnimationFrame(step);
+  }
+  step();
+})();
+
+/* ============ HERO 3D — AI NEURAL NETWORK SPHERE ============ */
+(function(){
+  const canvas = document.getElementById('orb-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0,0,7);
+
+  function fit(){
+    const size = canvas.clientWidth || canvas.parentElement.clientWidth;
+    renderer.setSize(size, size, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    camera.aspect=1; camera.updateProjectionMatrix();
+  }
+  const group = new THREE.Group(); scene.add(group);
+
+  // neural network nodes distributed on a sphere
+  const NODE_COUNT = 90;
+  const nodePositions = [];
+  const nodeGeo = new THREE.BufferGeometry();
+  const posArr = new Float32Array(NODE_COUNT*3);
+  for(let i=0;i<NODE_COUNT;i++){
+    const phi = Math.acos(-1 + (2*i)/NODE_COUNT);
+    const theta = Math.sqrt(NODE_COUNT*Math.PI)*phi;
+    const r = 2.3;
+    const x = r*Math.cos(theta)*Math.sin(phi);
+    const y = r*Math.sin(theta)*Math.sin(phi);
+    const z = r*Math.cos(phi);
+    nodePositions.push(new THREE.Vector3(x,y,z));
+    posArr[i*3]=x; posArr[i*3+1]=y; posArr[i*3+2]=z;
+  }
+  nodeGeo.setAttribute('position', new THREE.BufferAttribute(posArr,3));
+  const nodeMat = new THREE.PointsMaterial({color:0x22e5ff, size:0.065, transparent:true, opacity:0.9});
+  group.add(new THREE.Points(nodeGeo, nodeMat));
+
+  // connections between nearby nodes
+  const lineVerts = [];
+  for(let i=0;i<NODE_COUNT;i++){
+    for(let j=i+1;j<NODE_COUNT;j++){
+      if(nodePositions[i].distanceTo(nodePositions[j]) < 1.15){
+        lineVerts.push(nodePositions[i].x,nodePositions[i].y,nodePositions[i].z);
+        lineVerts.push(nodePositions[j].x,nodePositions[j].y,nodePositions[j].z);
+      }
+    }
+  }
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVerts),3));
+  const lineMat = new THREE.LineBasicMaterial({color:0x4f8cff, transparent:true, opacity:0.18});
+  group.add(new THREE.LineSegments(lineGeo, lineMat));
+
+  // inner wireframe core representing the risk engine
+  const coreGeo = new THREE.IcosahedronGeometry(0.9, 1);
+  const coreMat = new THREE.MeshStandardMaterial({color:0x9b7bfa, emissive:0x9b7bfa, emissiveIntensity:0.7, roughness:0.3, metalness:0.3, wireframe:true});
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  group.add(core);
+  const coreFillGeo = new THREE.IcosahedronGeometry(0.55,1);
+  const coreFillMat = new THREE.MeshStandardMaterial({color:0x9b7bfa, emissive:0x9b7bfa, emissiveIntensity:0.9, transparent:true, opacity:0.5});
+  group.add(new THREE.Mesh(coreFillGeo, coreFillMat));
+
+  // occasional signal pulses traveling along edges (represents live inference)
+  const pulseGeo = new THREE.SphereGeometry(0.045,8,8);
+  const pulses = [];
+  for(let i=0;i<5;i++){
+    const mat = new THREE.MeshBasicMaterial({color:0x22e5ff, transparent:true, opacity:0});
+    const mesh = new THREE.Mesh(pulseGeo, mat);
+    group.add(mesh);
+    pulses.push({mesh, from:null, to:null, t:Math.random(), speed:0.006+Math.random()*0.008});
+  }
+  function assignPulse(p){
+    p.from = nodePositions[Math.floor(Math.random()*NODE_COUNT)];
+    p.to = nodePositions[Math.floor(Math.random()*NODE_COUNT)];
+    p.t = 0;
+  }
+  pulses.forEach(assignPulse);
+
+  scene.add(new THREE.AmbientLight(0x8899ff, 0.5));
+  const key = new THREE.PointLight(0x22e5ff, 2, 12); key.position.set(3,3,4); scene.add(key);
+  const rim = new THREE.PointLight(0x9b7bfa, 1.5, 12); rim.position.set(-3,-2,-3); scene.add(rim);
+
+  fit(); window.addEventListener('resize', fit);
+
+  let targetRotX=0,targetRotY=0,curRotX=0,curRotY=0,targetPX=0,targetPY=0,curPX=0,curPY=0;
+  window.addEventListener('mousemove',(e)=>{
+    const nx=(e.clientX/window.innerWidth)-0.5, ny=(e.clientY/window.innerHeight)-0.5;
+    targetRotY=nx*0.9; targetRotX=-ny*0.6; targetPX=nx*0.4; targetPY=-ny*0.25;
+  });
+
+  const clock = new THREE.Clock();
+  function animate(){
+    const t = clock.getElapsedTime();
+    curRotX += (targetRotX-curRotX)*0.05; curRotY += (targetRotY-curRotY)*0.05;
+    curPX += (targetPX-curPX)*0.05; curPY += (targetPY-curPY)*0.05;
+    group.rotation.x = curRotX + Math.sin(t*0.15)*0.05;
+    group.rotation.y = t*0.14 + curRotY;
+    group.position.y = Math.sin(t*0.6)*0.16 + curPY*0.3;
+    group.position.x = curPX*0.3;
+    core.rotation.y -= 0.004; core.rotation.x += 0.002;
+    coreMat.emissiveIntensity = 0.55 + Math.sin(t*1.8)*0.25;
+
+    pulses.forEach(p=>{
+      p.t += p.speed;
+      if(p.t>=1){ assignPulse(p); }
+      p.mesh.position.lerpVectors(p.from, p.to, p.t);
+      p.mesh.material.opacity = Math.sin(p.t*Math.PI)*0.9;
+    });
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+/* ============ HERO CANDLE STRIP (ambient, decorative) ============ */
+(function(){
+  const canvas = document.getElementById('candleStrip');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+  window.addEventListener('resize', resize);
+  const N = 70;
+  let candles = [];
+  let base = 100;
+  for(let i=0;i<N;i++){
+    const open = base + (Math.random()-0.5)*6;
+    const close = open + (Math.random()-0.5)*8;
+    const high = Math.max(open,close)+Math.random()*4;
+    const low = Math.min(open,close)-Math.random()*4;
+    candles.push({open,close,high,low});
+    base = close;
+  }
+  function draw(){
+    resize();
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const vals = candles.flatMap(c=>[c.high,c.low]);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const cw = w/N;
+    candles.forEach((c,i)=>{
+      const x = i*cw + cw/2;
+      const y = v => h - ((v-min)/(max-min))*h;
+      const up = c.close >= c.open;
+      ctx.strokeStyle = up ? 'rgba(46,230,166,0.5)' : 'rgba(255,92,108,0.5)';
+      ctx.fillStyle = up ? 'rgba(46,230,166,0.35)' : 'rgba(255,92,108,0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y(c.high)); ctx.lineTo(x, y(c.low)); ctx.stroke();
+      const bodyTop = y(Math.max(c.open,c.close)), bodyBot = y(Math.min(c.open,c.close));
+      ctx.fillRect(x-cw*0.28, bodyTop, cw*0.56, Math.max(2,bodyBot-bodyTop));
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ============ DASHBOARD CANDLESTICK CHART ============ */
+(function(){
+  const canvas = document.getElementById('candleCanvas');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+  const N = 42; let candles=[]; let base=100;
+  for(let i=0;i<N;i++){
+    const open = base+(Math.random()-0.5)*5;
+    const close = open+(Math.random()-0.5)*7;
+    const high = Math.max(open,close)+Math.random()*3;
+    const low = Math.min(open,close)-Math.random()*3;
+    candles.push({open,close,high,low}); base=close;
+  }
+  function draw(){
+    resize();
+    const w=canvas.width,h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const vals=candles.flatMap(c=>[c.high,c.low]);
+    const min=Math.min(...vals), max=Math.max(...vals);
+    const cw=w/N;
+    candles.forEach((c,i)=>{
+      const x=i*cw+cw/2;
+      const y=v=>h-((v-min)/(max-min))*h;
+      const up=c.close>=c.open;
+      ctx.strokeStyle = up?'#2ee6a6':'#ff5c6c';
+      ctx.fillStyle = up?'#2ee6a6':'#ff5c6c';
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,y(c.high)); ctx.lineTo(x,y(c.low)); ctx.stroke();
+      const bodyTop=y(Math.max(c.open,c.close)), bodyBot=y(Math.min(c.open,c.close));
+      ctx.globalAlpha=0.85;
+      ctx.fillRect(x-cw*0.3, bodyTop, cw*0.6, Math.max(2,bodyBot-bodyTop));
+      ctx.globalAlpha=1;
+    });
+  }
+  ScrollTrigger.create({trigger:canvas, start:'top 90%', onEnter:draw});
+  window.addEventListener('resize', draw);
+  setTimeout(draw, 300);
+})();
+
+/* ============ HEATMAP GRID ============ */
+(function(){
+  const grid = document.getElementById('heatGrid');
+  const colors = ['rgba(46,230,166,0.75)','rgba(46,230,166,0.4)','rgba(255,92,108,0.4)','rgba(255,92,108,0.75)','rgba(34,229,255,0.35)'];
+  for(let i=0;i<24;i++){
+    const cell = document.createElement('div');
+    cell.className='heatcell';
+    cell.style.background = colors[Math.floor(Math.random()*colors.length)];
+    grid.appendChild(cell);
+  }
+})();
+
+/* ============ SCROLL REVEALS ============ */
+document.querySelectorAll('.reveal').forEach((el)=>{
+  gsap.to(el,{opacity:1,y:0,duration:0.9,ease:'power3.out',scrollTrigger:{trigger:el,start:'top 88%'}});
+});
+
+/* ============ PIPELINE ACTIVE-STAGE HIGHLIGHT ON SCROLL ============ */
+document.querySelectorAll('#pipelineList .pipe-stage').forEach((stage)=>{
+  ScrollTrigger.create({
+    trigger:stage, start:'top 75%', end:'bottom 25%',
+    onEnter:()=>stage.classList.add('active'),
+    onEnterBack:()=>stage.classList.add('active')
+  });
+});
+
+/* ============ MAGNETIC BUTTONS ============ */
+document.querySelectorAll('.magnetic').forEach((btn)=>{
+  btn.addEventListener('mousemove',(e)=>{
+    const r=btn.getBoundingClientRect(); const x=e.clientX-r.left-r.width/2, y=e.clientY-r.top-r.height/2;
+    gsap.to(btn,{x:x*0.3,y:y*0.4,duration:0.3,ease:'power2.out'});
+  });
+  btn.addEventListener('mouseleave',()=>gsap.to(btn,{x:0,y:0,duration:0.5,ease:'elastic.out(1,0.4)'}));
+});
+
+/* ============ CARD GLOW FOLLOW ============ */
+document.querySelectorAll('.feat-card, .tech-card').forEach((card)=>{
+  card.addEventListener('mousemove',(e)=>{
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    card.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* ============ DASHBOARD MOCK TILT ============ */
+const dashMock = document.getElementById('dashMock');
+dashMock.addEventListener('mousemove',(e)=>{
+  const r=dashMock.getBoundingClientRect();
+  const nx=((e.clientX-r.left)/r.width)-0.5, ny=((e.clientY-r.top)/r.height)-0.5;
+  gsap.to(dashMock,{rotateY:nx*7,rotateX:-ny*7,duration:0.4,ease:'power2.out',transformPerspective:1200});
+});
+dashMock.addEventListener('mouseleave',()=>gsap.to(dashMock,{rotateY:0,rotateX:0,duration:0.6}));
+</script>
+</body>
+</html>

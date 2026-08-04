@@ -40,13 +40,18 @@ if str(THIS_DIR) not in sys.path:
 
 from style import load_css
 
-st.set_page_config(
-    page_title="Bank Nifty Surveillance",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-load_css()
+# Only set page config / run as a standalone page when this file is the
+# actual Streamlit entrypoint (`streamlit run frontend/app.py`). When it's
+# imported by the root app.py (landing page + dashboard combined), the root
+# app already owns st.set_page_config() and calls render_dashboard() itself.
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="Bank Nifty Surveillance",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    load_css()
 
 BACKEND_URL = os.getenv("SURVEILLANCE_API_URL", "http://127.0.0.1:5000")
 REFRESH_MINUTES = 5
@@ -354,26 +359,36 @@ def chat_panel():
 # Dashboard
 # ---------------------------------------------------------------------------
 
-st.markdown("## Bank Nifty Live Surveillance")
 
-header_left, header_right = st.columns([3, 1])
-with header_left:
-    st.caption("Hybrid TCN + Isolation Forest anomaly detection · CARS risk engine · NLP news context")
-with header_right:
-    if st.button("Refresh now", use_container_width=True):
-        _request("POST", "api/refresh")
-        st.rerun()
+def render_dashboard() -> None:
+    """Render the full live dashboard (chart + risk/anomaly/news side panels
+    + chat Q&A + debug expander). Called either by this file directly
+    (`streamlit run frontend/app.py`) or by the root app.py router after the
+    "Launch Dashboard" button is clicked on the landing page."""
+    st.markdown("## Bank Nifty Live Surveillance")
 
-chart_col, side_col = st.columns([3.2, 1])
+    header_left, header_right = st.columns([3, 1])
+    with header_left:
+        st.caption("Hybrid TCN + Isolation Forest anomaly detection · CARS risk engine · NLP news context")
+    with header_right:
+        if st.button("Refresh now", use_container_width=True):
+            _request("POST", "api/refresh")
+            st.rerun()
 
-with chart_col:
-    chart_panel()
+    chart_col, side_col = st.columns([3.2, 1])
 
-with side_col:
-    risk_panel()
-    anomaly_panel()
-    news_panel()
+    with chart_col:
+        chart_panel()
 
-st.markdown("---")
-chat_panel()
-debug_expander()
+    with side_col:
+        risk_panel()
+        anomaly_panel()
+        news_panel()
+
+    st.markdown("---")
+    chat_panel()
+    debug_expander()
+
+
+if __name__ == "__main__":
+    render_dashboard()
